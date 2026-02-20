@@ -3,7 +3,7 @@
     <header>
       <h1><a href="/portfolio-treemap/" class="header-title-link">Portfolio Treemap</a></h1>
       <div class="actions">
-        <button @click="isMosaic = !isMosaic" :class="['btn-info', { 'active': isMosaic }]">金額モザイク</button>
+        <button @click="toggleMosaic" :class="['btn-info', { 'active': isMosaic }]">金額モザイク</button>
         <button @click="copyShareUrl" class="btn-info">共有</button>
         <button @click="toggleImport" class="btn-secondary">CSVインポート</button>
         <button @click="refreshData" :disabled="isLoading" class="btn-primary">
@@ -34,7 +34,7 @@
       <textarea v-model="csvInput" placeholder="4755.T,1000&#10;7203.T,500"></textarea>
       <div class="import-actions">
         <button @click="importCSV" class="btn-primary">インポート実行</button>
-        <button @click="showImport = false" class="btn-secondary">キャンセル</button>
+        <button @click="toggleImport" class="btn-secondary">キャンセル</button>
       </div>
     </div>
 
@@ -115,211 +115,38 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { onMounted } from 'vue';
 import Treemap from './components/Treemap.vue';
-import { fetchStockData } from './utils/yahooFinance';
-import { getPortfolioFromUrl, updateUrlWithPortfolio } from './utils/urlState';
+import { usePortfolioManager } from './composables/usePortfolioManager';
 
-const portfolio = ref([]);
-const stockData = reactive({});
-const isLoading = ref(false);
-const completedCount = ref(0);
-const showImport = ref(false);
-const csvInput = ref('');
-const isMosaic = ref(false);
-const MAX_CONCURRENT_REQUESTS = 5;
+const {
+  portfolio,
+  stockData,
+  isLoading,
+  completedCount,
+  showImport,
+  csvInput,
+  isMosaic,
+  newItem,
+  symbolError,
+  quantityError,
+  summary,
+  displayData,
+  addItem,
+  removeItem,
+  toggleImport,
+  importCSV,
+  copyShareUrl,
+  refreshData,
+  onQuantityChange,
+  toggleMosaic,
+  initialize,
+  formatNumber,
+  getValuation,
+  getPriceChangeClass,
+} = usePortfolioManager();
 
-const newItem = reactive({
-  symbol: '',
-  quantity: null
-});
-
-const symbolError = ref('');
-const quantityError = ref('');
-
-const SYMBOL_REGEX = /^([0-9]{4,5}\.[TFNS]|[A-Z]{1,5})$/;
-
-const isValidSymbol = (symbol) => SYMBOL_REGEX.test(symbol);
-const isValidQuantity = (q) => Number.isInteger(q) && q >= 1;
-
-const summary = computed(() => {
-  let totalValuation = 0;
-  let totalYesterdayValuation = 0;
-
-  portfolio.value.forEach(item => {
-    const data = stockData[item.symbol];
-    if (data && data.price) {
-      const currentVal = data.price * item.quantity;
-      totalValuation += currentVal;
-
-      const yesterdayPrice = data.price / (1 + (data.changePercent || 0) / 100);
-      totalYesterdayValuation += yesterdayPrice * item.quantity;
-    }
-  });
-
-  const totalChangeAmount = totalValuation - totalYesterdayValuation;
-  const totalChangePercent = totalYesterdayValuation !== 0
-    ? (totalChangeAmount / totalYesterdayValuation) * 100
-    : 0;
-
-  return {
-    totalValuation,
-    totalChangeAmount,
-    totalChangePercent
-  };
-});
-
-const displayData = computed(() => {
-  return portfolio.value
-    .map(item => {
-      const data = stockData[item.symbol];
-      if (!data || !data.price) return null;
-      return {
-        symbol: item.symbol,
-        name: data.name,
-        valuation: data.price * item.quantity,
-        change: data.changePercent
-      };
-    })
-    .filter(d => d !== null);
-});
-
-const formatNumber = (num) => {
-  return Math.round(num).toLocaleString();
-};
-
-const getValuation = (item) => {
-  const data = stockData[item.symbol];
-  if (!data || !data.price) return null;
-  return data.price * item.quantity;
-};
-
-const getPriceChangeClass = (change) => {
-  if (change === undefined || change === null) return '';
-  if (change > 0) return 'text-up';
-  if (change < 0) return 'text-down';
-  return '';
-};
-
-const onQuantityChange = (item) => {
-  if (!isValidQuantity(item.quantity)) {
-    item.quantity = Math.max(1, Math.floor(item.quantity || 1));
-  }
-  updateUrlWithPortfolio(portfolio.value);
-};
-
-const addItem = async () => {
-  symbolError.value = '';
-  quantityError.value = '';
-
-  const symbol = newItem.symbol.toUpperCase();
-
-  if (!isValidSymbol(symbol)) {
-    symbolError.value = '無効な銘柄コードです';
-  }
-  if (!isValidQuantity(newItem.quantity)) {
-    quantityError.value = '1以上の整数を入力してください';
-  }
-
-  if (symbolError.value || quantityError.value) return;
-
-  if (!portfolio.value.find(i => i.symbol === symbol)) {
-    portfolio.value.push({
-      symbol,
-      quantity: newItem.quantity
-    });
-    fetchSingle(symbol);
-  }
-
-  newItem.symbol = '';
-  newItem.quantity = null;
-
-  updateUrlWithPortfolio(portfolio.value);
-};
-
-const removeItem = (index) => {
-  portfolio.value.splice(index, 1);
-  updateUrlWithPortfolio(portfolio.value);
-};
-
-const toggleImport = () => {
-  showImport.value = !showImport.value;
-  if (showImport.value) {
-    csvInput.value = portfolio.value
-      .map(item => `${item.symbol},${item.quantity}`)
-      .join('\n');
-  }
-};
-
-const importCSV = () => {
-  const lines = csvInput.value.split('\n');
-  const newItems = [];
-  lines.forEach(line => {
-    const parts = line.split(',').map(s => s.trim());
-    if (parts.length >= 2) {
-      const symbol = parts[0].toUpperCase();
-      const quantity = parseFloat(parts[1]);
-      if (symbol && !isNaN(quantity)) {
-        newItems.push({
-          symbol,
-          quantity
-        });
-      }
-    }
-  });
-
-  portfolio.value = newItems;
-  updateUrlWithPortfolio(portfolio.value);
-  refreshData();
-  showImport.value = false;
-  csvInput.value = '';
-};
-
-const copyShareUrl = () => {
-  navigator.clipboard.writeText(window.location.href).then(() => {
-    alert('現在の状態を含むURLをコピーしました。');
-  });
-};
-
-const fetchSingle = async (symbol) => {
-  const data = await fetchStockData(symbol);
-  if (!data.error) {
-    stockData[symbol] = data;
-  }
-};
-
-const refreshData = async () => {
-  if (portfolio.value.length === 0) return;
-
-  isLoading.value = true;
-  completedCount.value = 0;
-
-  const symbols = portfolio.value.map(item => item.symbol);
-  let nextIndex = 0;
-
-  const worker = async () => {
-    while (nextIndex < symbols.length) {
-      const currentIndex = nextIndex;
-      nextIndex++;
-
-      await fetchSingle(symbols[currentIndex]);
-      completedCount.value++;
-    }
-  };
-
-  const workerCount = Math.min(MAX_CONCURRENT_REQUESTS, symbols.length);
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
-
-  isLoading.value = false;
-};
-
-onMounted(() => {
-  const saved = getPortfolioFromUrl();
-  if (saved) {
-    portfolio.value = saved;
-    refreshData();
-  }
-});
+onMounted(initialize);
 </script>
 
 <style>

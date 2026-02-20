@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "coverage:check": "node scripts/check-coverage.mjs"
   },
   "dependencies": {
     "vue": "^3.4.21",
