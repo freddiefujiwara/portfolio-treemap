@@ -543,19 +543,30 @@ header h1 {
 
 .quantity-input {
   width: 100px;
-  padding: 4px 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
   font-size: 16px;
   font-family: inherit;
-  background: transparent;
+  background: #fff;
   transition: all 0.2s;
   color: inherit;
+  box-sizing: border-box;
 }
 
-.quantity-input:hover, .quantity-input:focus {
-  border-color: #d9d9d9;
-  background: #fff;
+.quantity-input:focus {
+  border-color: #007aff;
+  outline: none;
+}
+
+/* Hide spin buttons */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .btn-primary {
@@ -688,8 +699,7 @@ button:disabled {
 
   .quantity-input {
     text-align: right;
-    width: 150px;
-    padding-right: 0;
+    width: 120px;
   }
 
   .add-item-form {
