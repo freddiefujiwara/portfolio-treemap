@@ -4,7 +4,11 @@ export const decode = (encoded) => {
   if (!encoded) return null;
   try {
     // Handle cases where '+' characters are converted to spaces (common in query params)
-    const normalized = encoded.replace(/ /g, '+');
+    // or '_' was used for encoding, or it was double-encoded to %20
+    const normalized = encoded
+      .replace(/ /g, '+')
+      .replace(/_/g, '+')
+      .replace(/%20/g, '+');
     const decompressed = LZString.decompressFromEncodedURIComponent(normalized);
     if (!decompressed) return null;
     return JSON.parse(decompressed);
@@ -15,7 +19,8 @@ export const decode = (encoded) => {
 };
 
 export const encode = (value) => {
-  return LZString.compressToEncodedURIComponent(JSON.stringify(value));
+  // Replace '+' with '_' to avoid issues with space conversion in query parameters
+  return LZString.compressToEncodedURIComponent(JSON.stringify(value)).replace(/\+/g, '_');
 };
 
 export const getPortfolioFromUrl = () => {
