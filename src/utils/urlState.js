@@ -3,7 +3,9 @@ import LZString from "lz-string";
 export const decode = (encoded) => {
   if (!encoded) return null;
   try {
-    const decompressed = LZString.decompressFromEncodedURIComponent(encoded);
+    // Handle cases where '+' characters are converted to spaces (common in query params)
+    const normalized = encoded.replace(/ /g, '+');
+    const decompressed = LZString.decompressFromEncodedURIComponent(normalized);
     if (!decompressed) return null;
     return JSON.parse(decompressed);
   } catch (e) {
