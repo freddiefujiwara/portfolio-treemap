@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import Treemap from './components/Treemap.vue';
 import { fetchStockData } from './utils/yahooFinance';
 import { getPortfolioFromUrl, updateUrlWithPortfolio } from './utils/urlState';
@@ -111,6 +111,7 @@ const completedCount = ref(0);
 const showImport = ref(false);
 const csvInput = ref('');
 const isMosaic = ref(false);
+const MAX_CONCURRENT_REQUESTS = 5;
 
 const newItem = reactive({
   symbol: '',
@@ -251,10 +252,21 @@ const refreshData = async () => {
   isLoading.value = true;
   completedCount.value = 0;
 
-  for (const item of portfolio.value) {
-    await fetchSingle(item.symbol);
-    completedCount.value++;
-  }
+  const symbols = portfolio.value.map(item => item.symbol);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < symbols.length) {
+      const currentIndex = nextIndex;
+      nextIndex++;
+
+      await fetchSingle(symbols[currentIndex]);
+      completedCount.value++;
+    }
+  };
+
+  const workerCount = Math.min(MAX_CONCURRENT_REQUESTS, symbols.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
   isLoading.value = false;
 };
