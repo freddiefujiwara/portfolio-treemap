@@ -41,4 +41,32 @@ describe('urlState', () => {
       expect(result).not.toBeNull();
     }
   });
+
+  it('should use underscore instead of plus sign in encoded string', () => {
+    // Force a case that would have a plus sign
+    const data = { symbols: ['AAPL', 'MSFT'], q: 1000 };
+    const encoded = encode(data);
+    expect(encoded).not.toContain('+');
+    // If it was supposed to have a plus, it should now have an underscore
+    // We can verify by decoding it
+    expect(decode(encoded)).toEqual(data);
+  });
+
+  it('should handle underscores when decoding', () => {
+    const data = { a: 1 };
+    const encoded = encode(data).replace(/\+/g, '_'); // Ensure it has underscores if it had pluses
+    expect(decode(encoded)).toEqual(data);
+  });
+
+  it('should handle %20 when decoding', () => {
+    const data = { symbol: 'AAPL' };
+    const encoded = encode(data);
+    // Manually introduce %20 (simulating double encoding of a mangled space)
+    // We need to find a way to get a '+' that we can turn into %20
+    const encodedWithPlus = "NobwRAzgngtgRgewDZgFxgKwAYBMWB0AKmADRgCOArgIYB2ALgJb1Ro4DMAvieNPMmjAAODAE4AjEVIUaDZq1TjuvWIhToALAHYMGKWSp0mLNOPFZ2o5ZFUD0OCRv0yj8tOyxZrfNYI3+cZ0M5E1QANk9vW3UwDWxA4gNZYwVzLx4bfhiMHByg5LdUD3SVLMEw8S0hfNdQ4qiy9CEsDGrElxCFeoyfO2EcMK0azvdInujBIXZxMOGU0ZLM33RRDXZ2OcK8LwBdIA";
+    const encodedWithPercent20 = encodedWithPlus.replace(/\+/g, '%20');
+    expect(decode(encodedWithPercent20)).not.toBeNull();
+    const result = decode(encodedWithPercent20);
+    expect(result[0].symbol).toBe('5020.T');
+  });
 });

@@ -1,9 +1,9 @@
 <template>
   <div class="app-container">
     <header>
-      <h1>Portfolio Treemap</h1>
+      <h1><a href="/portfolio-treemap/" class="header-title-link">Portfolio Treemap</a></h1>
       <div class="actions">
-        <button @click="showBookmarkHint" class="btn-info">ブックマーク</button>
+        <button @click="isMosaic = !isMosaic" :class="['btn-info', { 'active': isMosaic }]">金額モザイク</button>
         <button @click="copyShareUrl" class="btn-info">共有</button>
         <button @click="toggleImport" class="btn-secondary">CSVインポート</button>
         <button @click="refreshData" :disabled="isLoading" class="btn-primary">
@@ -15,12 +15,14 @@
     <div v-if="summary.totalValuation > 0" class="portfolio-summary">
       <div class="summary-item main">
         <div class="label">総評価額</div>
-        <div class="value">¥{{ formatNumber(summary.totalValuation) }}</div>
+        <div class="value" :class="{ 'mosaic-blur': isMosaic }">¥{{ formatNumber(summary.totalValuation) }}</div>
       </div>
       <div class="summary-item" :class="getPriceChangeClass(summary.totalChangePercent)">
         <div class="label">前日比</div>
         <div class="value">
-          {{ summary.totalChangeAmount >= 0 ? '+' : '' }}{{ formatNumber(summary.totalChangeAmount) }}
+          <span :class="{ 'mosaic-blur': isMosaic }">
+            {{ summary.totalChangeAmount >= 0 ? '+' : '' }}{{ formatNumber(summary.totalChangeAmount) }}
+          </span>
           <span class="percent">({{ summary.totalChangePercent.toFixed(2) }}%)</span>
         </div>
       </div>
@@ -38,7 +40,7 @@
 
     <main>
       <div class="treemap-section">
-        <Treemap v-if="displayData.length > 0" :data="displayData" />
+        <Treemap v-if="displayData.length > 0" :data="displayData" :is-mosaic="isMosaic" />
         <div v-else-if="!isLoading" class="empty-state">
           銘柄を追加してポートフォリオを可視化しましょう。
         </div>
@@ -74,9 +76,13 @@
                   <div class="symbol">{{ item.symbol }}</div>
                   <div class="name">{{ stockData[item.symbol]?.name || '---' }}</div>
                 </td>
-                <td data-label="保有数">{{ item.quantity.toLocaleString() }}</td>
+                <td data-label="保有数">
+                  <span :class="{ 'mosaic-blur': isMosaic }">{{ item.quantity.toLocaleString() }}</span>
+                </td>
                 <td data-label="現在値">{{ stockData[item.symbol]?.price ? `¥${stockData[item.symbol].price.toLocaleString()}` : '---' }}</td>
-                <td data-label="評価額">{{ getValuation(item) ? `¥${getValuation(item).toLocaleString()}` : '---' }}</td>
+                <td data-label="評価額">
+                  <span :class="{ 'mosaic-blur': isMosaic }">{{ getValuation(item) ? `¥${getValuation(item).toLocaleString()}` : '---' }}</span>
+                </td>
                 <td data-label="前日比" :class="getPriceChangeClass(stockData[item.symbol]?.changePercent)">
                   {{ stockData[item.symbol]?.changePercent ? `${stockData[item.symbol].changePercent.toFixed(2)}%` : '---' }}
                 </td>
@@ -104,6 +110,7 @@ const isLoading = ref(false);
 const completedCount = ref(0);
 const showImport = ref(false);
 const csvInput = ref('');
+const isMosaic = ref(false);
 
 const newItem = reactive({
   symbol: '',
@@ -231,11 +238,6 @@ const copyShareUrl = () => {
   });
 };
 
-const showBookmarkHint = () => {
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  alert(`${isMac ? 'Cmd + D' : 'Ctrl + D'} を押して現在の状態をブックマークに保存してください。`);
-};
-
 const fetchSingle = async (symbol) => {
   const data = await fetchStockData(symbol);
   if (!data.error) {
@@ -281,6 +283,20 @@ header {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.header-title-link {
+  color: #1d1d1f;
+  text-decoration: none;
+}
+
+.header-title-link:hover {
+  opacity: 0.7;
 }
 
 .portfolio-summary {
@@ -455,6 +471,17 @@ header {
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
+}
+
+.btn-info.active {
+  background: #e5e5ea;
+  border-color: #8e8e93;
+}
+
+.mosaic-blur {
+  filter: blur(6px);
+  transition: filter 0.2s;
+  user-select: none;
 }
 
 .btn-info {
