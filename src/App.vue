@@ -3,6 +3,8 @@
     <header>
       <h1>Portfolio Treemap</h1>
       <div class="actions">
+        <button @click="showBookmarkHint" class="btn-info">ブックマーク</button>
+        <button @click="copyShareUrl" class="btn-info">共有</button>
         <button @click="toggleImport" class="btn-secondary">CSVインポート</button>
         <button @click="refreshData" :disabled="isLoading" class="btn-primary">
           {{ isLoading ? '更新中...' : 'データを更新' }}
@@ -223,6 +225,17 @@ const importCSV = () => {
   csvInput.value = '';
 };
 
+const copyShareUrl = () => {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    alert('現在の状態を含むURLをコピーしました。');
+  });
+};
+
+const showBookmarkHint = () => {
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  alert(`${isMac ? 'Cmd + D' : 'Ctrl + D'} を押して現在の状態をブックマークに保存してください。`);
+};
+
 const fetchSingle = async (symbol) => {
   const data = await fetchStockData(symbol);
   if (!data.error) {
@@ -439,6 +452,15 @@ header {
   background: #fff;
   color: #007aff;
   border: 1px solid #007aff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-info {
+  background: #f2f2f7;
+  color: #1d1d1f;
+  border: 1px solid #d1d1d6;
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
