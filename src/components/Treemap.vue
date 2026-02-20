@@ -5,7 +5,7 @@
       <div class="tooltip-name">{{ tooltip.data.name }} ({{ tooltip.data.symbol }})</div>
       <div class="tooltip-row">
         <span>評価額:</span>
-        <span>¥{{ formatNumber(tooltip.data.valuation) }}</span>
+        <span :class="{ 'mosaic-blur': isMosaic }">¥{{ formatNumber(tooltip.data.valuation) }}</span>
       </div>
       <div class="tooltip-row">
         <span>比率:</span>
@@ -27,6 +27,10 @@ const props = defineProps({
   data: {
     type: Array,
     required: true
+  },
+  isMosaic: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -240,5 +244,11 @@ onUnmounted(() => {
 .text-down {
   color: #ff4d4f;
   font-weight: bold;
+}
+
+.mosaic-blur {
+  filter: blur(6px);
+  transition: filter 0.2s;
+  user-select: none;
 }
 </style>
