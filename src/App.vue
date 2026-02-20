@@ -3,7 +3,7 @@
     <header>
       <h1>Portfolio Treemap</h1>
       <div class="actions">
-        <button @click="showImport = !showImport" class="btn-secondary">CSVインポート</button>
+        <button @click="toggleImport" class="btn-secondary">CSVインポート</button>
         <button @click="refreshData" :disabled="isLoading" class="btn-primary">
           {{ isLoading ? '更新中...' : 'データを更新' }}
         </button>
@@ -11,8 +11,9 @@
     </header>
 
     <div v-if="showImport" class="import-section">
-      <h3>CSVインポート (Symbol, Quantity, Cost)</h3>
-      <textarea v-model="csvInput" placeholder="4755.T,100,800&#10;7203.T,50,2500"></textarea>
+      <h3>CSVインポート (Symbol, Quantity)</h3>
+      <p class="import-hint">既存のデータは上書きされます。</p>
+      <textarea v-model="csvInput" placeholder="4755.T,1000&#10;7203.T,500"></textarea>
       <div class="import-actions">
         <button @click="importCSV" class="btn-primary">インポート実行</button>
         <button @click="showImport = false" class="btn-secondary">キャンセル</button>
@@ -34,7 +35,6 @@
         <div class="add-item-form">
           <input v-model="newItem.symbol" placeholder="銘柄コード (e.g. 4755.T)" @keyup.enter="addItem" />
           <input v-model.number="newItem.quantity" type="number" placeholder="保有数" @keyup.enter="addItem" />
-          <input v-model.number="newItem.cost" type="number" placeholder="取得単価 (任意)" @keyup.enter="addItem" />
           <button @click="addItem" class="btn-primary">追加</button>
         </div>
 
@@ -43,7 +43,6 @@
             <tr>
               <th>銘柄</th>
               <th>保有数</th>
-              <th>取得単価</th>
               <th>現在値</th>
               <th>評価額</th>
               <th>前日比</th>
@@ -57,7 +56,6 @@
                 <div class="name">{{ stockData[item.symbol]?.name || '---' }}</div>
               </td>
               <td>{{ item.quantity.toLocaleString() }}</td>
-              <td>{{ item.cost ? `¥${item.cost.toLocaleString()}` : '---' }}</td>
               <td>{{ stockData[item.symbol]?.price ? `¥${stockData[item.symbol].price.toLocaleString()}` : '---' }}</td>
               <td>{{ getValuation(item) ? `¥${getValuation(item).toLocaleString()}` : '---' }}</td>
               <td :class="getPriceChangeClass(stockData[item.symbol]?.changePercent)">
@@ -89,8 +87,7 @@ const csvInput = ref('');
 
 const newItem = reactive({
   symbol: '',
-  quantity: null,
-  cost: null
+  quantity: null
 });
 
 const displayData = computed(() => {
@@ -115,7 +112,7 @@ const getValuation = (item) => {
 };
 
 const getPriceChangeClass = (change) => {
-  if (!change) return '';
+  if (change === undefined || change === null) return '';
   if (change > 0) return 'text-up';
   if (change < 0) return 'text-down';
   return '';
@@ -128,15 +125,13 @@ const addItem = async () => {
   if (!portfolio.value.find(i => i.symbol === symbol)) {
     portfolio.value.push({
       symbol,
-      quantity: newItem.quantity,
-      cost: newItem.cost
+      quantity: newItem.quantity
     });
     fetchSingle(symbol);
   }
 
   newItem.symbol = '';
   newItem.quantity = null;
-  newItem.cost = null;
 
   updateUrlWithPortfolio(portfolio.value);
 };
@@ -146,17 +141,29 @@ const removeItem = (index) => {
   updateUrlWithPortfolio(portfolio.value);
 };
 
+const toggleImport = () => {
+  showImport.value = !showImport.value;
+  if (showImport.value) {
+    csvInput.value = portfolio.value
+      .map(item => `${item.symbol},${item.quantity}`)
+      .join('\n');
+  }
+};
+
 const importCSV = () => {
   const lines = csvInput.value.split('\n');
   const newItems = [];
   lines.forEach(line => {
-    const [symbol, quantity, cost] = line.split(',').map(s => s.trim());
-    if (symbol && quantity) {
-      newItems.push({
-        symbol: symbol.toUpperCase(),
-        quantity: parseFloat(quantity),
-        cost: cost ? parseFloat(cost) : null
-      });
+    const parts = line.split(',').map(s => s.trim());
+    if (parts.length >= 2) {
+      const symbol = parts[0].toUpperCase();
+      const quantity = parseFloat(parts[1]);
+      if (symbol && !isNaN(quantity)) {
+        newItems.push({
+          symbol,
+          quantity
+        });
+      }
     }
   });
 
@@ -180,8 +187,6 @@ const refreshData = async () => {
   isLoading.value = true;
   completedCount.value = 0;
 
-  // Fetch sequentially or in small batches to avoid heavy load,
-  // but sequential is safer for "heavy API" consideration.
   for (const item of portfolio.value) {
     await fetchSingle(item.symbol);
     completedCount.value++;
@@ -197,12 +202,6 @@ onMounted(() => {
     refreshData();
   }
 });
-
-// Sync URL when portfolio changes (though we do it in methods too)
-watch(portfolio, (newVal) => {
-    // updateUrlWithPortfolio(newVal); // Already handled in methods to avoid infinite loops if any
-}, { deep: true });
-
 </script>
 
 <style>
@@ -230,14 +229,22 @@ header {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+.import-hint {
+  font-size: 12px;
+  color: #ff3b30;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+
 .import-section textarea {
   width: 100%;
-  height: 100px;
+  height: 150px;
   margin: 10px 0;
   padding: 10px;
   box-sizing: border-box;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
+  font-family: monospace;
 }
 
 .import-actions {

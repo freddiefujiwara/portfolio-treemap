@@ -3,8 +3,8 @@ import { encode, decode } from '../src/utils/urlState';
 
 describe('urlState', () => {
   const samplePortfolio = [
-    { symbol: '4755.T', quantity: 100, cost: 800 },
-    { symbol: '7203.T', quantity: 50, cost: 2500 }
+    { symbol: '4755.T', quantity: 100 },
+    { symbol: '7203.T', quantity: 50 }
   ];
 
   it('should encode and decode portfolio correctly', () => {

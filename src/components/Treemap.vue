@@ -54,7 +54,7 @@ const getPriceChangeClass = (change) => {
 const updateDimensions = () => {
   if (container.value) {
     width.value = container.value.clientWidth;
-    height.value = Math.max(400, window.innerHeight * 0.6);
+    height.value = Math.max(400, window.innerHeight * 0.7);
   }
 };
 
@@ -62,6 +62,13 @@ const colorScale = d3.scaleLinear()
   .domain([-3, 0, 3])
   .range(['#ff4d4f', '#f0f0f0', '#52c41a'])
   .clamp(true);
+
+const getTextColor = (d) => {
+  const c = colorScale(d.data.change);
+  const rgb = d3.rgb(c);
+  const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  return brightness > 128 ? '#000' : '#fff';
+};
 
 const renderTreemap = () => {
   if (!props.data || props.data.length === 0) return;
@@ -86,8 +93,8 @@ const renderTreemap = () => {
     .attr('transform', d => `translate(${d.x0},${d.y0})`);
 
   leaf.append('rect')
-    .attr('width', d => d.x1 - d.x0)
-    .attr('height', d => d.y1 - d.y0)
+    .attr('width', d => Math.max(0, d.x1 - d.x0))
+    .attr('height', d => Math.max(0, d.y1 - d.y0))
     .attr('fill', d => colorScale(d.data.change))
     .on('mousemove', (event, d) => {
       tooltip.value = {
@@ -104,23 +111,33 @@ const renderTreemap = () => {
       tooltip.value.show = false;
     });
 
-  leaf.append('text')
-    .attr('x', 5)
-    .attr('y', 20)
-    .attr('font-size', '12px')
-    .attr('font-weight', 'bold')
-    .attr('fill', d => {
-        const c = colorScale(d.data.change);
-        const rgb = d3.rgb(c);
-        const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-        return brightness > 128 ? '#000' : '#fff';
-    })
-    .text(d => (d.x1 - d.x0 > 50 && d.y1 - d.y0 > 25) ? d.data.symbol : '')
-    .append('tspan')
-    .attr('x', 5)
-    .attr('dy', '1.2em')
-    .attr('font-weight', 'normal')
-    .text(d => (d.x1 - d.x0 > 50 && d.y1 - d.y0 > 45) ? `${d.data.change.toFixed(2)}%` : '');
+  leaf.append('foreignObject')
+    .attr('width', d => Math.max(0, d.x1 - d.x0))
+    .attr('height', d => Math.max(0, d.y1 - d.y0))
+    .attr('pointer-events', 'none')
+    .append('xhtml:div')
+    .attr('class', 'tile-content')
+    .style('width', d => `${Math.max(0, d.x1 - d.x0)}px`)
+    .style('height', d => `${Math.max(0, d.y1 - d.y0)}px`)
+    .style('color', d => getTextColor(d))
+    .html(d => {
+        const w = d.x1 - d.x0;
+        const h = d.y1 - d.y0;
+        if (w < 30 || h < 20) return '';
+
+        // Dynamic font size logic
+        const area = w * h;
+        const side = Math.min(w, h);
+        const fontSize = Math.max(8, Math.min(side / 4.5, w / 8, 36));
+
+        return `
+          <div class="tile-label-container" style="font-size: ${fontSize}px;">
+            <div class="tile-name" style="font-size: ${fontSize}px;">${d.data.name}</div>
+            <div class="tile-symbol" style="font-size: ${fontSize * 0.7}px;">${d.data.symbol}</div>
+            <div class="tile-change" style="font-size: ${fontSize * 0.8}px;">${d.data.change > 0 ? '+' : ''}${d.data.change.toFixed(2)}%</div>
+          </div>
+        `;
+    });
 };
 
 onMounted(() => {
@@ -148,6 +165,45 @@ onUnmounted(() => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.tile-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-align: center;
+}
+
+.tile-label-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.tile-name {
+  width: 100%;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-symbol {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
+
+.tile-change {
+  font-weight: bold;
 }
 
 .tooltip {
