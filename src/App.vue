@@ -79,7 +79,7 @@
             <tbody>
               <tr v-for="(item, index) in portfolio" :key="item.symbol">
                 <td data-label="銘柄">
-                  <a :href="'https://finance.yahoo.co.jp/quote/' + item.symbol" target="_blank" rel="noopener noreferrer" class="stock-link">
+                  <a :href="'https://finance.yahoo.co.jp/quote/' + item.symbol + '?term=1d'" target="_blank" rel="noopener noreferrer" class="stock-link">
                     <div class="symbol">{{ item.symbol }}</div>
                     <div class="name">{{ stockData[item.symbol]?.name || '---' }}</div>
                   </a>
