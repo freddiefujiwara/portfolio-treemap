@@ -52,8 +52,14 @@
       <div class="portfolio-section">
         <div class="add-item-form">
           <div class="input-group">
-            <input v-model="newItem.symbol" placeholder="銘柄コード (e.g. 4755.T)" @keyup.enter="addItem" />
-            <input v-model.number="newItem.quantity" type="number" placeholder="保有数" @keyup.enter="addItem" />
+            <div class="input-wrapper">
+              <input v-model="newItem.symbol" :class="{ 'input-error': symbolError }" placeholder="銘柄コード (e.g. 4755.T)" @keyup.enter="addItem" />
+              <div v-if="symbolError" class="error-text">{{ symbolError }}</div>
+            </div>
+            <div class="input-wrapper">
+              <input v-model.number="newItem.quantity" :class="{ 'input-error': quantityError }" type="number" placeholder="保有数" @keyup.enter="addItem" />
+              <div v-if="quantityError" class="error-text">{{ quantityError }}</div>
+            </div>
           </div>
           <button @click="addItem" class="btn-primary add-btn">追加</button>
         </div>
@@ -73,11 +79,21 @@
             <tbody>
               <tr v-for="(item, index) in portfolio" :key="item.symbol">
                 <td data-label="銘柄">
-                  <div class="symbol">{{ item.symbol }}</div>
-                  <div class="name">{{ stockData[item.symbol]?.name || '---' }}</div>
+                  <a :href="'https://finance.yahoo.co.jp/quote/' + item.symbol + '?term=1d'" target="_blank" rel="noopener noreferrer" class="stock-link">
+                    <div class="symbol">{{ item.symbol }}</div>
+                    <div class="name">{{ stockData[item.symbol]?.name || '---' }}</div>
+                  </a>
                 </td>
                 <td data-label="保有数">
-                  <span :class="{ 'mosaic-blur': isMosaic }">{{ item.quantity.toLocaleString() }}</span>
+                  <input
+                    v-model.number="item.quantity"
+                    type="number"
+                    min="1"
+                    step="1"
+                    @change="onQuantityChange(item)"
+                    class="quantity-input"
+                    :class="{ 'mosaic-blur': isMosaic }"
+                  />
                 </td>
                 <td data-label="現在値">{{ stockData[item.symbol]?.price ? `¥${stockData[item.symbol].price.toLocaleString()}` : '---' }}</td>
                 <td data-label="評価額">
@@ -117,6 +133,14 @@ const newItem = reactive({
   symbol: '',
   quantity: null
 });
+
+const symbolError = ref('');
+const quantityError = ref('');
+
+const SYMBOL_REGEX = /^([0-9]{4,5}\.[TFNS]|[A-Z]{1,5})$/;
+
+const isValidSymbol = (symbol) => SYMBOL_REGEX.test(symbol);
+const isValidQuantity = (q) => Number.isInteger(q) && q >= 1;
 
 const summary = computed(() => {
   let totalValuation = 0;
@@ -177,10 +201,28 @@ const getPriceChangeClass = (change) => {
   return '';
 };
 
+const onQuantityChange = (item) => {
+  if (!isValidQuantity(item.quantity)) {
+    item.quantity = Math.max(1, Math.floor(item.quantity || 1));
+  }
+  updateUrlWithPortfolio(portfolio.value);
+};
+
 const addItem = async () => {
-  if (!newItem.symbol || !newItem.quantity) return;
+  symbolError.value = '';
+  quantityError.value = '';
 
   const symbol = newItem.symbol.toUpperCase();
+
+  if (!isValidSymbol(symbol)) {
+    symbolError.value = '無効な銘柄コードです';
+  }
+  if (!isValidQuantity(newItem.quantity)) {
+    quantityError.value = '1以上の整数を入力してください';
+  }
+
+  if (symbolError.value || quantityError.value) return;
+
   if (!portfolio.value.find(i => i.symbol === symbol)) {
     portfolio.value.push({
       symbol,
@@ -425,6 +467,22 @@ header h1 {
   min-width: 280px;
 }
 
+.input-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-error {
+  border-color: #ff3b30 !important;
+}
+
+.error-text {
+  color: #ff3b30;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .add-item-form input {
   padding: 10px 14px;
   border: 1px solid #d9d9d9;
@@ -471,6 +529,44 @@ header h1 {
 .name {
   font-size: 12px;
   color: #8e8e93;
+}
+
+.stock-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.stock-link:hover .symbol {
+  color: #007aff;
+}
+
+.quantity-input {
+  width: 100px;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff;
+  transition: all 0.2s;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.quantity-input:focus {
+  border-color: #007aff;
+  outline: none;
+}
+
+/* Hide spin buttons */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .btn-primary {
@@ -599,6 +695,11 @@ button:disabled {
 
   .actions-cell {
     justify-content: flex-end;
+  }
+
+  .quantity-input {
+    text-align: right;
+    width: 120px;
   }
 
   .add-item-form {
