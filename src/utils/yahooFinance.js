@@ -16,7 +16,7 @@ export const fetchStockData = async (symbol) => {
   }
 };
 
-const parseYahooHTML = (html, symbol) => {
+export const parseYahooHTML = (html, symbol) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 

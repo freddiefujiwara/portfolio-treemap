@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import Treemap from './components/Treemap.vue';
 import { fetchStockData } from './utils/yahooFinance';
 import { getPortfolioFromUrl, updateUrlWithPortfolio } from './utils/urlState';
@@ -111,6 +111,7 @@ const completedCount = ref(0);
 const showImport = ref(false);
 const csvInput = ref('');
 const isMosaic = ref(false);
+const MAX_CONCURRENT_REQUESTS = 5;
 
 const newItem = reactive({
   symbol: '',
@@ -251,10 +252,21 @@ const refreshData = async () => {
   isLoading.value = true;
   completedCount.value = 0;
 
-  for (const item of portfolio.value) {
-    await fetchSingle(item.symbol);
-    completedCount.value++;
-  }
+  const symbols = portfolio.value.map(item => item.symbol);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < symbols.length) {
+      const currentIndex = nextIndex;
+      nextIndex++;
+
+      await fetchSingle(symbols[currentIndex]);
+      completedCount.value++;
+    }
+  };
+
+  const workerCount = Math.min(MAX_CONCURRENT_REQUESTS, symbols.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
   isLoading.value = false;
 };
@@ -331,6 +343,7 @@ header h1 {
 .actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .import-section {
@@ -417,10 +430,16 @@ header h1 {
   border: 1px solid #d9d9d9;
   border-radius: 8px;
   flex: 1;
+  min-width: 0;
   font-size: 16px;
 }
 
 .add-btn {
+  white-space: nowrap;
+}
+
+.actions button,
+.import-actions button {
   white-space: nowrap;
 }
 
@@ -522,6 +541,18 @@ button:disabled {
 
 /* Responsive Table */
 @media screen and (max-width: 768px) {
+  .actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions button {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
   .portfolio-summary {
     flex-direction: column;
     gap: 12px;
@@ -575,8 +606,18 @@ button:disabled {
   }
 
   .input-group {
+    flex-direction: column;
     width: 100%;
     min-width: 0;
+  }
+
+  .add-item-form input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .add-btn {
+    width: 100%;
   }
 }
 </style>
