@@ -8,18 +8,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "coverage:check": "node scripts/check-coverage.mjs"
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "vue": "^3.4.21",
     "d3": "^7.9.0",
-    "lz-string": "^1.5.0"
+    "lz-string": "^1.5.0",
+    "vue": "^3.4.21"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
-    "vite": "^5.2.0",
-    "vitest": "^1.4.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "@vue/test-utils": "^2.4.5",
-    "jsdom": "^24.0.0"
+    "jsdom": "^24.0.0",
+    "vite": "^5.2.0",
+    "vitest": "^1.4.0"
   }
 }
