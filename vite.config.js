@@ -7,6 +7,10 @@ export default defineConfig({
   base: '/portfolio-treemap/',
   test: {
     environment: 'jsdom',
-    globals: true
+    globals: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.js']
+    }
   }
 })
