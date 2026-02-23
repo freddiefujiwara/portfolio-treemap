@@ -7,13 +7,13 @@
       v-for="leaf in layoutNodes"
       :key="leaf.data.symbol"
       class="stock-tile"
-      :class="leaf.data.change > 0 ? 'is-positive-box' : 'is-negative-box'"
       :style="{
         left: leaf.x0 + 'px',
         top: leaf.y0 + 'px',
         width: (leaf.x1 - leaf.x0) + 'px',
         height: (leaf.y1 - leaf.y0) + 'px',
-        fontSize: getFontSize(leaf) + 'px'
+        fontSize: getFontSize(leaf) + 'px',
+        backgroundColor: getTileColor(leaf.data.change)
       }"
       @mousemove="showTooltip($event, leaf)"
       @mouseleave="hideTooltip"
@@ -113,6 +113,21 @@ const getFontSize = (leaf) => {
   return Math.max(8, Math.min(side / 4.5, w / 8, 36));
 };
 
+const getTileColor = (change) => {
+  const neutral = "#1f2937"; // --surface-elevated
+  const positive = "#22c55e";
+  const negative = "#ef4444";
+
+  if (change > 0) {
+    const intensity = Math.min(change / 5, 1);
+    return d3.interpolateRgb(neutral, positive)(intensity);
+  } else if (change < 0) {
+    const intensity = Math.min(Math.abs(change) / 5, 1);
+    return d3.interpolateRgb(neutral, negative)(intensity);
+  }
+  return neutral;
+};
+
 const showTooltip = (event, leaf) => {
   const totalValuation = props.data.reduce((sum, d) => sum + d.valuation, 0);
   tooltip.value = {
@@ -182,15 +197,7 @@ onUnmounted(() => {
 }
 
 .stock-tile:hover {
-  opacity: 0.9;
-}
-
-.is-positive-box {
-  background: color-mix(in oklab, #22c55e 35%, var(--surface));
-}
-
-.is-negative-box {
-  background: color-mix(in oklab, #ef4444 35%, var(--surface));
+  filter: brightness(1.1);
 }
 
 .tile-label-container {
