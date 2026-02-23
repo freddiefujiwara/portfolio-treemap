@@ -20,9 +20,6 @@ const createDefaultDeps = () => ({
   fetchStockData: fetchStockDataDefault,
   getPortfolioFromUrl: getPortfolioFromUrlDefault,
   updateUrlWithPortfolio: updateUrlWithPortfolioDefault,
-  copyText: (text) => navigator.clipboard.writeText(text),
-  notify: (message) => window.alert(message),
-  getCurrentUrl: () => window.location.href,
 })
 
 export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {}) => {
@@ -109,11 +106,6 @@ export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {
     csvInput.value = ''
   }
 
-  const copyShareUrl = async () => {
-    await services.copyText(services.getCurrentUrl())
-    services.notify('現在の状態を含むURLをコピーしました。')
-  }
-
   const refreshData = async () => {
     if (portfolio.value.length === 0) return
 
@@ -184,7 +176,6 @@ export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {
     removeItem,
     toggleImport,
     importCSV,
-    copyShareUrl,
     refreshData,
     onQuantityChange,
     toggleMosaic,

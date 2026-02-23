@@ -11,7 +11,7 @@
           <button @click="toggleMosaic" class="theme-toggle">
             {{ isMosaic ? '金額表示' : '金額モザイク' }}
           </button>
-          <button @click="copyShareUrl" class="theme-toggle">共有</button>
+          <button @click="openShareDialog" class="theme-toggle">共有する</button>
           <button @click="toggleImport" class="theme-toggle">CSVインポート</button>
           <button @click="refreshData" :disabled="isLoading" class="theme-toggle">
             {{ isLoading ? '更新中...' : 'データを更新' }}
@@ -19,6 +19,26 @@
         </div>
       </div>
     </header>
+
+    <div v-if="isShareDialogOpen" class="share-dialog-backdrop" @click.self="closeShareDialog">
+      <section class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-dialog-title">
+        <h2 id="share-dialog-title">共有前の確認</h2>
+        <p>
+          この共有では、現在画面に入力されている<strong>入力値</strong>と、そこから算出された<strong>計算結果</strong>がすべて含まれます。
+        </p>
+        <p>
+          資産状況は機密性の高い情報です。共有先は、信頼できる家族や友人のみに留めてください。
+        </p>
+        <p>
+          共有URLは、ブラウザのブックマーク等に保存することで、現在の計算結果を後から参照・保存できます。
+        </p>
+        <div class="share-dialog-actions">
+          <button class="theme-toggle" type="button" @click="closeShareDialog">キャンセル</button>
+          <button class="theme-toggle" type="button" @click="shareCurrentResult">共有を続ける</button>
+        </div>
+      </section>
+    </div>
+    <p v-if="shareStatusMessage" class="share-status" role="status">{{ shareStatusMessage }}</p>
 
     <div v-if="summary.totalValuation > 0" class="card-grid">
       <article class="card">
@@ -127,9 +147,44 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import Treemap from './components/Treemap.vue';
 import { usePortfolioManager } from './composables/usePortfolioManager';
+
+const isShareDialogOpen = ref(false);
+const shareStatusMessage = ref('');
+
+const openShareDialog = () => {
+  shareStatusMessage.value = '';
+  isShareDialogOpen.value = true;
+};
+
+const closeShareDialog = () => {
+  isShareDialogOpen.value = false;
+};
+
+const shareCurrentResult = async () => {
+  const shareUrl = window.location.href;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: 'ポートフォリオ構成図',
+        text: '現在の資産シミュレーション結果',
+        url: shareUrl,
+      });
+      shareStatusMessage.value = '共有ダイアログを開きました。';
+      closeShareDialog();
+      return;
+    }
+
+    await navigator.clipboard.writeText(shareUrl);
+    shareStatusMessage.value = '共有URLをコピーしました。';
+    closeShareDialog();
+  } catch {
+    shareStatusMessage.value = '共有またはコピーに失敗しました。時間をおいて再度お試しください。';
+  }
+};
 
 const {
   portfolio,
@@ -148,7 +203,6 @@ const {
   removeItem,
   toggleImport,
   importCSV,
-  copyShareUrl,
   refreshData,
   onQuantityChange,
   toggleMosaic,
