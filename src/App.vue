@@ -1,9 +1,10 @@
 <template>
   <div class="layout">
     <header class="header">
-      <h1><a href="/portfolio-treemap/" class="stock-link">Portfolio Treemap</a></h1>
+      <h1>ポートフォリオ構成図</h1>
       <div class="header-actions">
         <div class="header-buttons">
+          <a href="https://freddiefujiwara.com/portfolio-treemap" class="theme-toggle reset-link">リセット</a>
           <button @click="toggleTheme" class="theme-toggle">
             {{ theme === 'dark' ? 'ライト' : 'ダーク' }}モードへ
           </button>
@@ -163,4 +164,10 @@ onMounted(initialize);
 </script>
 
 <style scoped>
+.reset-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 </style>
