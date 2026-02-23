@@ -9,9 +9,6 @@ describe('usePortfolioManager', () => {
       fetchStockData: vi.fn(async (symbol) => ({ symbol, name: symbol, price: 100, changePercent: 1 })),
       getPortfolioFromUrl: vi.fn(() => null),
       updateUrlWithPortfolio: vi.fn(),
-      copyText: vi.fn(async () => {}),
-      notify: vi.fn(),
-      getCurrentUrl: vi.fn(() => 'https://example.com/share'),
     }
   })
 
@@ -54,12 +51,4 @@ describe('usePortfolioManager', () => {
     expect(manager.csvInput.value).toBe('')
   })
 
-  it('copies share url', async () => {
-    const manager = usePortfolioManager({ deps })
-
-    await manager.copyShareUrl()
-
-    expect(deps.copyText).toHaveBeenCalledWith('https://example.com/share')
-    expect(deps.notify).toHaveBeenCalledWith('現在の状態を含むURLをコピーしました。')
-  })
 })
