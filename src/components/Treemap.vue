@@ -1,6 +1,32 @@
 <template>
-  <div ref="container" class="treemap-container">
-    <svg ref="svg" :width="width" :height="height"></svg>
+  <div ref="container" class="treemap-container" :style="{ height: height + 'px' }">
+    <div v-if="layoutNodes.length === 0" class="empty-treemap-message">
+      銘柄データを取得中か、有効な銘柄データがありません。
+    </div>
+    <div
+      v-for="leaf in layoutNodes"
+      :key="leaf.data.symbol"
+      class="stock-tile"
+      :class="leaf.data.change > 0 ? 'is-positive-box' : 'is-negative-box'"
+      :style="{
+        left: leaf.x0 + 'px',
+        top: leaf.y0 + 'px',
+        width: (leaf.x1 - leaf.x0) + 'px',
+        height: (leaf.y1 - leaf.y0) + 'px',
+        fontSize: getFontSize(leaf) + 'px'
+      }"
+      @mousemove="showTooltip($event, leaf)"
+      @mouseleave="hideTooltip"
+    >
+      <div v-if="(leaf.x1 - leaf.x0) >= 30 && (leaf.y1 - leaf.y0) >= 20" class="tile-label-container">
+        <div class="stock-tile-name">{{ leaf.data.name }}</div>
+        <div class="tile-symbol" :style="{ fontSize: (getFontSize(leaf) * 0.7) + 'px' }">{{ leaf.data.symbol }}</div>
+        <div class="tile-change" :style="{ fontSize: (getFontSize(leaf) * 0.8) + 'px' }">
+          {{ leaf.data.change > 0 ? '+' : '' }}{{ leaf.data.change.toFixed(2) }}%
+        </div>
+      </div>
+    </div>
+
     <div v-if="tooltip.show" class="stock-tile-tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px', opacity: 1, position: 'fixed' }">
       <div class="stock-tile-name" style="margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
         {{ tooltip.data.name }} ({{ tooltip.data.symbol }})
@@ -24,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted } from 'vue';
+import { ref, onMounted, watch, onUnmounted, computed } from 'vue';
 import * as d3 from 'd3';
 
 const props = defineProps({
@@ -39,7 +65,6 @@ const props = defineProps({
 });
 
 const container = ref(null);
-const svg = ref(null);
 const width = ref(800);
 const height = ref(500);
 const tooltip = ref({
@@ -53,34 +78,23 @@ const formatNumber = (num) => {
   return Math.round(num).toLocaleString();
 };
 
-const getPriceChangeClass = (change) => {
-  if (change > 0) return 'text-up';
-  if (change < 0) return 'text-down';
-  return '';
-};
-
 const updateDimensions = () => {
   if (container.value) {
-    width.value = container.value.clientWidth;
-    height.value = Math.max(400, window.innerHeight * 0.7);
+    const newWidth = container.value.clientWidth;
+    if (newWidth > 0) {
+      width.value = newWidth;
+    }
+    height.value = Math.max(400, window.innerHeight * 0.6);
   }
 };
 
-const colorScale = d3.scaleLinear()
-  .domain([-3, 0, 3])
-  .range(['#ef4444', '#334155', '#22c55e'])
-  .clamp(true);
+const layoutNodes = computed(() => {
+  if (!props.data || props.data.length === 0) return [];
 
-const getTextColor = (d) => {
-  return '#fff';
-};
+  const validData = props.data.filter(d => d.valuation > 0);
+  if (validData.length === 0) return [];
 
-const renderTreemap = () => {
-  if (!props.data || props.data.length === 0) return;
-
-  const totalValuation = props.data.reduce((sum, d) => sum + d.valuation, 0);
-
-  const root = d3.hierarchy({ children: props.data })
+  const root = d3.hierarchy({ children: validData })
     .sum(d => d.valuation)
     .sort((a, b) => b.value - a.value);
 
@@ -89,79 +103,46 @@ const renderTreemap = () => {
     .padding(1)
     (root);
 
-  const svgElement = d3.select(svg.value);
-  svgElement.selectAll('*').remove();
-
-  const leaf = svgElement.selectAll('g')
-    .data(root.leaves())
-    .join('g')
-    .attr('transform', d => `translate(${d.x0},${d.y0})`);
-
-  leaf.append('rect')
-    .attr('width', d => Math.max(0, d.x1 - d.x0))
-    .attr('height', d => Math.max(0, d.y1 - d.y0))
-    .attr('fill', d => colorScale(d.data.change))
-    .on('mousemove', (event, d) => {
-      tooltip.value = {
-        show: true,
-        x: event.clientX + 10,
-        y: event.clientY + 10,
-        data: {
-          ...d.data,
-          ratio: (d.data.valuation / totalValuation) * 100
-        }
-      };
-    })
-    .on('mouseleave', () => {
-      tooltip.value.show = false;
-    });
-
-  leaf.filter(d => (d.x1 - d.x0) >= 30 && (d.y1 - d.y0) >= 20)
-    .append('foreignObject')
-    .attr('x', 0)
-    .attr('y', 0)
-    .attr('width', d => d.x1 - d.x0)
-    .attr('height', d => d.y1 - d.y0)
-    .attr('pointer-events', 'none')
-    .style('overflow', 'hidden')
-    .append('xhtml:div')
-    .attr('class', 'tile-content')
-    .style('width', '100%')
-    .style('height', '100%')
-    .style('color', d => getTextColor(d))
-    .html(d => {
-        const w = d.x1 - d.x0;
-        const h = d.y1 - d.y0;
-
-        // Dynamic font size logic
-        const area = w * h;
-        const side = Math.min(w, h);
-        const fontSize = Math.max(8, Math.min(side / 4.5, w / 8, 36));
-
-        return `
-          <div class="tile-label-container" style="font-size: ${fontSize}px; padding: 4px;">
-            <div class="stock-tile-name" style="font-size: ${fontSize}px;">${d.data.name}</div>
-            <div class="tile-symbol" style="font-size: ${fontSize * 0.7}px; opacity: 0.8;">${d.data.symbol}</div>
-            <div class="tile-change" style="font-size: ${fontSize * 0.8}px; font-weight: bold;">${d.data.change > 0 ? '+' : ''}${d.data.change.toFixed(2)}%</div>
-          </div>
-        `;
-    });
-};
-
-onMounted(() => {
-  updateDimensions();
-  renderTreemap();
-  window.addEventListener('resize', () => {
-    updateDimensions();
-    renderTreemap();
-  });
+  return root.leaves();
 });
 
-watch(() => props.data, renderTreemap, { deep: true });
-watch([width, height], renderTreemap);
+const getFontSize = (leaf) => {
+  const w = leaf.x1 - leaf.x0;
+  const h = leaf.y1 - leaf.y0;
+  const side = Math.min(w, h);
+  return Math.max(8, Math.min(side / 4.5, w / 8, 36));
+};
+
+const showTooltip = (event, leaf) => {
+  const totalValuation = props.data.reduce((sum, d) => sum + d.valuation, 0);
+  tooltip.value = {
+    show: true,
+    x: event.clientX + 10,
+    y: event.clientY + 10,
+    data: {
+      ...leaf.data,
+      ratio: (leaf.data.valuation / totalValuation) * 100
+    }
+  };
+};
+
+const hideTooltip = () => {
+  tooltip.value.show = false;
+};
+
+let ro;
+onMounted(() => {
+  updateDimensions();
+  ro = new ResizeObserver(() => {
+    updateDimensions();
+  });
+  if (container.value) {
+    ro.observe(container.value);
+  }
+});
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateDimensions);
+  if (ro) ro.disconnect();
 });
 </script>
 
@@ -173,16 +154,43 @@ onUnmounted(() => {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-}
-
-.tile-content {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-sizing: border-box;
-  overflow: hidden;
+}
+
+.empty-treemap-message {
+  color: var(--muted);
+  font-size: 0.9rem;
   text-align: center;
+}
+
+.stock-tile {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  cursor: help;
+  transition: opacity 0.2s;
+  color: #fff;
   text-shadow: 0 1px 2px rgb(2 6 23 / 0.28);
+}
+
+.stock-tile:hover {
+  opacity: 0.9;
+}
+
+.is-positive-box {
+  background: color-mix(in oklab, #22c55e 35%, var(--surface));
+}
+
+.is-negative-box {
+  background: color-mix(in oklab, #ef4444 35%, var(--surface));
 }
 
 .tile-label-container {
@@ -199,6 +207,11 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0.8;
+}
+
+.tile-change {
+  font-weight: bold;
 }
 
 .mosaic-blur {
