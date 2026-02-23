@@ -35,6 +35,7 @@ export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {
   const showImport = ref(false)
   const csvInput = ref('')
   const isMosaic = ref(false)
+  const theme = ref('dark')
   const symbolError = ref('')
   const quantityError = ref('')
 
@@ -142,7 +143,23 @@ export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {
     isMosaic.value = !isMosaic.value
   }
 
+  const applyTheme = (nextTheme) => {
+    document.documentElement.setAttribute('data-theme', nextTheme)
+  }
+
+  const toggleTheme = () => {
+    theme.value = theme.value === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('portfolio-treemap-theme', theme.value)
+    applyTheme(theme.value)
+  }
+
   const initialize = async () => {
+    const savedTheme = localStorage.getItem('portfolio-treemap-theme')
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      theme.value = savedTheme
+    }
+    applyTheme(theme.value)
+
     const saved = services.getPortfolioFromUrl()
     if (!saved) return
 
@@ -171,6 +188,8 @@ export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {
     refreshData,
     onQuantityChange,
     toggleMosaic,
+    theme,
+    toggleTheme,
     initialize,
     formatNumber,
     getValuation: (item) => getValuation(item, stockData),
