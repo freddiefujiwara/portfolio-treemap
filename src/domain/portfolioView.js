@@ -50,7 +50,7 @@ export const formatNumber = (num) => Math.round(num).toLocaleString()
 
 export const getPriceChangeClass = (change) => {
   if (change === undefined || change === null) return ''
-  if (change > 0) return 'text-up'
-  if (change < 0) return 'text-down'
+  if (change > 0) return 'is-positive'
+  if (change < 0) return 'is-negative'
   return ''
 }

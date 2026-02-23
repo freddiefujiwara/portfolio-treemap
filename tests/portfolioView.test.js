@@ -33,8 +33,8 @@ describe('portfolioView', () => {
 
   it('formats numbers and classes', () => {
     expect(formatNumber(1234.4)).toBe('1,234')
-    expect(getPriceChangeClass(1)).toBe('text-up')
-    expect(getPriceChangeClass(-1)).toBe('text-down')
+    expect(getPriceChangeClass(1)).toBe('is-positive')
+    expect(getPriceChangeClass(-1)).toBe('is-negative')
     expect(getPriceChangeClass(0)).toBe('')
   })
 })
