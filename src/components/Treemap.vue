@@ -116,19 +116,22 @@ const renderTreemap = () => {
       tooltip.value.show = false;
     });
 
-  leaf.append('foreignObject')
-    .attr('width', d => Math.max(0, d.x1 - d.x0))
-    .attr('height', d => Math.max(0, d.y1 - d.y0))
+  leaf.filter(d => (d.x1 - d.x0) >= 30 && (d.y1 - d.y0) >= 20)
+    .append('foreignObject')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', d => d.x1 - d.x0)
+    .attr('height', d => d.y1 - d.y0)
     .attr('pointer-events', 'none')
+    .style('overflow', 'hidden')
     .append('xhtml:div')
     .attr('class', 'tile-content')
-    .style('width', d => `${Math.max(0, d.x1 - d.x0)}px`)
-    .style('height', d => `${Math.max(0, d.y1 - d.y0)}px`)
+    .style('width', '100%')
+    .style('height', '100%')
     .style('color', d => getTextColor(d))
     .html(d => {
         const w = d.x1 - d.x0;
         const h = d.y1 - d.y0;
-        if (w < 30 || h < 20) return '';
 
         // Dynamic font size logic
         const area = w * h;
