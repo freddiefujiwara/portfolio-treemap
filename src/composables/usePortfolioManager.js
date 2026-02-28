@@ -147,9 +147,8 @@ export const usePortfolioManager = ({ maxConcurrentRequests = 5, deps = {} } = {
 
   const initialize = async () => {
     const savedTheme = localStorage.getItem('portfolio-treemap-theme')
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      theme.value = savedTheme
-    }
+    const preferredLight = window.matchMedia('(prefers-color-scheme: light)').matches
+    theme.value = savedTheme ?? (preferredLight ? 'light' : 'dark')
     applyTheme(theme.value)
 
     const saved = services.getPortfolioFromUrl()
