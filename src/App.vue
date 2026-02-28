@@ -6,7 +6,7 @@
         <div class="header-buttons">
           <a href="https://freddiefujiwara.com/portfolio-treemap" class="theme-toggle reset-link">リセット</a>
           <button @click="toggleTheme" class="theme-toggle">
-            {{ theme === 'dark' ? 'ライト' : 'ダーク' }}モードへ
+            {{ theme === 'light' ? '🌙 ダーク' : '☀️ ライト' }}
           </button>
           <button @click="toggleMosaic" class="theme-toggle">
             {{ isMosaic ? '金額表示' : '金額モザイク' }}
