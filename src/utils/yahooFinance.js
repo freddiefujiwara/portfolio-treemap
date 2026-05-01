@@ -20,14 +20,14 @@ export const parseYahooHTML = (html, symbol) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  const name = doc.querySelector(".PriceBoard__name__166W")?.textContent || symbol;
+  const name = doc.querySelector('[class*="_BasePriceBoard__name_"]')?.textContent || symbol;
 
   // Current Price
-  const priceElement = doc.querySelector(".PriceBoard__price__1V0k .StyledNumber__value__3rXW");
+  const priceElement = doc.querySelector('[class*="_CommonPriceBoard__price_"] [class*="_StyledNumber__value_"]');
   const price = priceElement ? parseFloat(priceElement.textContent.replace(/,/g, "")) : null;
 
   // Change percentage
-  const changePercentElement = doc.querySelector(".PriceChangeLabel__secondary__3BXI .StyledNumber__value__3rXW");
+  const changePercentElement = doc.querySelector('[class*="_PriceChangeLabel__secondary_"] [class*="_StyledNumber__value_"]');
   const changePercent = changePercentElement ? parseFloat(changePercentElement.textContent) : 0;
 
   return {

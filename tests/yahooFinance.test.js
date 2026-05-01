@@ -10,13 +10,13 @@ describe('yahooFinance', () => {
     const mockHtml = `
       <html>
         <body>
-          <h2 class="PriceBoard__name__166W">楽天グループ(株)</h2>
-          <div class="PriceBoard__price__1V0k">
-            <span class="StyledNumber__value__3rXW">822.4</span>
-          </div>
-          <div class="PriceChangeLabel__secondary__3BXI">
-            <span class="StyledNumber__value__3rXW">-2.94</span>
-          </div>
+          <h2 class="_BasePriceBoard__name_1swnm_67">楽天グループ(株)</h2>
+          <span class="_CommonPriceBoard__price_1g7gt_64">
+            <span class="_StyledNumber__value_1arhg_9">822.4</span>
+          </span>
+          <span class="_PriceChangeLabel__secondary_hse06_62">
+            <span class="_StyledNumber__value_1arhg_9">-2.94</span>
+          </span>
         </body>
       </html>
     `;
@@ -64,13 +64,13 @@ describe('yahooFinance', () => {
 
   it('should parse comma-separated price and positive change', () => {
     const html = `
-      <h2 class="PriceBoard__name__166W">テスト銘柄</h2>
-      <div class="PriceBoard__price__1V0k">
-        <span class="StyledNumber__value__3rXW">1,234.5</span>
-      </div>
-      <div class="PriceChangeLabel__secondary__3BXI">
-        <span class="StyledNumber__value__3rXW">1.25</span>
-      </div>
+      <h2 class="_BasePriceBoard__name_1swnm_67">テスト銘柄</h2>
+      <span class="_CommonPriceBoard__price_1g7gt_64">
+        <span class="_StyledNumber__value_1arhg_9">1,234.5</span>
+      </span>
+      <span class="_PriceChangeLabel__secondary_hse06_62">
+        <span class="_StyledNumber__value_1arhg_9">1.25</span>
+      </span>
     `;
 
     const parsed = parseYahooHTML(html, '1111.T');
