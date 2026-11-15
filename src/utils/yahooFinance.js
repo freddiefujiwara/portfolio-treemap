@@ -1,8 +1,10 @@
 const PROXY_URL = "https://script.google.com/macros/s/AKfycbx6iFGnB5EaSVedN5mk8F1L0iO9orwZZiOz_2m6wIRzHA1XsU555ib0Ex2LMCR1nLOvhw/exec";
+const PROXY_TOKEN = import.meta.env.VITE_URL_FETCH_TOKEN;
 
 export const fetchStockData = async (symbol) => {
   const targetUrl = `https://finance.yahoo.co.jp/quote/${symbol}`;
-  const fetchUrl = `${PROXY_URL}?u=${encodeURIComponent(targetUrl)}`;
+  const tokenParam = PROXY_TOKEN ? `&token=${encodeURIComponent(PROXY_TOKEN)}` : "";
+  const fetchUrl = `${PROXY_URL}?u=${encodeURIComponent(targetUrl)}${tokenParam}`;
 
   try {
     const response = await fetch(fetchUrl);
