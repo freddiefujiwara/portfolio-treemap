@@ -21,7 +21,10 @@ jobs:
         node-version: '20'
     - run: npm install
     - run: npm test -- --run
-    - run: npm run build
+    - name: Build
+      run: npm run build
+      env:
+        VITE_URL_FETCH_TOKEN: ${{ secrets.URL_FETCH_TOKEN }}
     - name: Generate OGP Image from GAS JSON
       run: |
         # URL-encoded title: ポートフォリオ構成図
