@@ -44,6 +44,24 @@ describe('yahooFinance', () => {
     expect(data).toEqual({ symbol: '7203.T', error: 'No content found in response' });
   });
 
+  it('should include the proxy token in the request URL when configured', async () => {
+    vi.stubEnv('VITE_URL_FETCH_TOKEN', 'test-token');
+    vi.resetModules();
+    try {
+      const { fetchStockData: fetchWithToken } = await import('../src/utils/yahooFinance');
+
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ content: '<html></html>' })
+      });
+
+      await fetchWithToken('4755.T');
+
+      expect(global.fetch.mock.calls[0][0]).toContain('&token=test-token');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('should return error object when fetch fails', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network down'));
 
