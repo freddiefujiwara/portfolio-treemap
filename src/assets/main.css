@@ -171,10 +171,6 @@ th {
   color: #f87171;
 }
 
-.is-warning {
-  color: #f59e0b;
-}
-
 .error {
   color: var(--error);
   font-size: 12px;
